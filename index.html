@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photos</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000">
+
+<style>
+:root{
+  --bg:#fff;
+  --text:#111;
+  --sub:#777;
+  --overlay:rgba(0,0,0,.95);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000;
+    --text:#f2f2f2;
+    --sub:#888;
+  }
+}
+*{
+  box-sizing:border-box;
+  font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+}
+body{margin:0;background:var(--bg);color:var(--text);}
+
+/* LOCK */
+#lock{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg);z-index:10;
+}
+.lock-box{
+  width:300px;padding:28px;
+  border-radius:14px;
+  box-shadow:0 10px 40px rgba(0,0,0,.25);
+  text-align:center;
+}
+input,button{
+  width:100%;padding:12px;margin-top:12px;
+  border-radius:10px;font-size:14px;
+}
+button{background:#007aff;color:#fff;border:none}
+
+/* HEADER */
+header{padding:16px;font-size:22px;font-weight:600;}
+header span{font-size:13px;color:var(--sub);}
+
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+  gap:2px;
+}
+.item{
+  aspect-ratio:1/1;
+  overflow:hidden;
+}
+.item img,.item video{
+  width:100%;height:100%;object-fit:cover;
+}
+
+/* VIEWER */
+.viewer{
+  position:fixed;inset:0;
+  background:var(--overlay);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20;
+  touch-action:none;
+}
+.viewer-content{
+  transition:transform .25s ease;
+}
+.viewer img,.viewer video{
+  max-width:95vw;
+  max-height:95vh;
+}
+
+/* INDICATOR */
+.indicator{
+  position:fixed;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  color:#fff;
+  font-size:13px;
+  z-index:30;
+}
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lock">
+  <div class="lock-box">
+    <h2>Photos</h2>
+    <input type="password" id="pass" placeholder="Password">
+    <button onclick="unlock()">Unlock</button>
+    <p id="error" style="color:#c00;font-size:12px"></p>
+  </div>
+</div>
+
+<header>
+  Photos
+  <span>Swipe • Double tap • Swipe down</span>
+</header>
+
+<section class="grid" id="grid"></section>
+
+<!-- VIEWER -->
+<div class="viewer" id="viewer">
+  <div class="indicator" id="indicator"></div>
+  <div class="viewer-content" id="viewerContent"></div>
+</div>
+
+<script>
+const PASSWORD="hindun";
+
+const media=[
+{ type: "image", src: "media/1.jpg" },
+  { type: "image", src: "media/2.jpg" },
+  { type: "video", src: "media/3.mp4" },
+  { type: "image", src: "media/4.jpg" },
+  { type: "image", src: "media/5.jpg" },
+  { type: "image", src: "media/6.jpg" },
+  { type: "video", src: "media/7.mp4" },
+  { type: "image", src: "media/8.jpg" },
+  { type: "image", src: "media/9.jpg" },
+  { type: "image", src: "media/10.jpg" },
+  { type: "video", src: "media/11.mp4" },
+  { type: "image", src: "media/12.jpg" },
+  { type: "image", src: "media/13.jpg" },
+  { type: "image", src: "media/14.jpg" },
+  { type: "video", src: "media/15.mp4" },
+  { type: "image", src: "media/16.jpg" },
+ // max 16
+];
+
+let index=0;
+let startX=0,startY=0;
+let zoomed=false;
+let lastTap=0;
+
+// BUILD GRID
+media.slice(0,16).forEach((m,i)=>{
+  const d=document.createElement("div");
+  d.className="item";
+  const el=document.createElement(m.type==="image"?"img":"video");
+  el.src=m.src;
+  if(m.type==="video") el.muted=true;
+  d.appendChild(el);
+  d.onclick=()=>openViewer(i);
+  grid.appendChild(d);
+});
+
+function unlock(){
+  if(pass.value===PASSWORD){
+    lock.style.display="none";
+  }else error.textContent="Password salah";
+}
+
+function openViewer(i){
+  index=i;
+  render();
+  viewer.style.display="flex";
+}
+
+function render(){
+  viewerContent.innerHTML="";
+  const m=media[index];
+  indicator.textContent=${index+1} / ${media.length};
+  zoomed=false;
+  viewerContent.style.transform="scale(1) translateY(0)";
+  if(m.type==="image"){
+    const img=document.createElement("img");
+    img.src=m.src;
+    viewerContent.appendChild(img);
+  }else{
+    const v=document.createElement("video");
+    v.src=m.src;
+    v.controls=true;
+    v.autoplay=true;
+    viewerContent.appendChild(v);
+  }
+}
+
+function next(){if(index<media.length-1){index++;render();}}
+function prev(){if(index>0){index--;render();}}
+function closeViewer(){viewer.style.display="none";}
+
+// TOUCH EVENTS
+viewer.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+  startY=e.touches[0].clientY;
+});
+
+viewer.addEventListener("touchend",e=>{
+  const dx=e.changedTouches[0].clientX-startX;
+  const dy=e.changedTouches[0].clientY-startY;
+
+  if(Math.abs(dy)>80 && dy>0){ closeViewer(); return; }
+  if(Math.abs(dx)>60){
+    dx<0?next():prev();
+  }
+});
+
+// DOUBLE TAP ZOOM
+viewer.addEventListener("click",e=>{
+  const now=Date.now();
+  if(now-lastTap<300){
+    zoomed=!zoomed;
+    viewerContent.style.transform=zoomed?
+      "scale(2)":"scale(1)";
+  }
+  lastTap=now;
+});
+
+// KEYBOARD
+document.addEventListener("keydown",e=>{
+  if(viewer.style.display!=="flex")return;
+  if(e.key==="ArrowRight")next();
+  if(e.key==="ArrowLeft")prev();
+  if(e.key==="Escape")closeViewer();
+});
+</script>
+
+</body>
+</html>
