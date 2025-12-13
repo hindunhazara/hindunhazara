@@ -101,7 +101,7 @@ header span{font-size:13px;color:var(--sub);}
   <div class="lock-box">
     <h2>Photos</h2>
     <input type="password" id="pass" placeholder="Password">
-    <button onclick="unlock()">Unlock</button>
+    <button id="unlockBtn">Unlock</button>
     <p id="error" style="color:#c00;font-size:12px"></p>
   </div>
 </div>
@@ -120,35 +120,49 @@ header span{font-size:13px;color:var(--sub);}
 </div>
 
 <script>
-const PASSWORD="private123";
+/* ===== CONFIG ===== */
+const PASSWORD = "hindunhazara25"; // ← GANTI PASSWORD DI SINI
 
-const media=[
-{ type: "image", src: "media/1.jpg" },
-  { type: "image", src: "media/2.jpg" },
-  { type: "video", src: "media/3.mp4" },
-  { type: "image", src: "media/4.jpg" },
-  { type: "image", src: "media/5.jpg" },
-  { type: "image", src: "media/6.jpg" },
-  { type: "video", src: "media/7.mp4" },
-  { type: "image", src: "media/8.jpg" },
-  { type: "image", src: "media/9.jpg" },
-  { type: "image", src: "media/10.jpg" },
-  { type: "video", src: "media/11.mp4" },
-  { type: "image", src: "media/12.jpg" },
-  { type: "image", src: "media/13.jpg" },
-  { type: "image", src: "media/14.jpg" },
-  { type: "video", src: "media/15.mp4" },
-  { type: "image", src: "media/16.jpg" },
- // max 16
+const media = [
+  { type:"image", src:"media/1.jpg" },
+  { type:"image", src:"media/2.jpg" },
+  { type:"video", src:"media/3.mp4" },
+  { type:"image", src:"media/4.jpg" },
+  { type:"image", src:"media/5.jpg" },
+  { type:"image", src:"media/6.jpg" },
+  { type:"video", src:"media/7.mp4" },
+  { type:"image", src:"media/8.jpg" },
+  { type:"image", src:"media/9.jpg" },
+  { type:"image", src:"media/10.jpg" },
+  { type:"video", src:"media/11.mp4" },
+  { type:"image", src:"media/12.jpg" },
+  { type:"image", src:"media/13.jpg" },
+  { type:"image", src:"media/14.jpg" },
+  { type:"video", src:"media/15.mp4" },
+  { type:"image", src:"media/16.jpg" }
 ];
 
-let index=0;
-let startX=0,startY=0;
-let zoomed=false;
-let lastTap=0;
+/* ===== ELEMENTS ===== */
+const lockEl = document.getElementById("lock");
+const passEl = document.getElementById("pass");
+const errorEl = document.getElementById("error");
+const gridEl = document.getElementById("grid");
+const viewer = document.getElementById("viewer");
+const viewerContent = document.getElementById("viewerContent");
+const indicator = document.getElementById("indicator");
 
-// BUILD GRID
-media.slice(0,16).forEach((m,i)=>{
+/* ===== UNLOCK ===== */
+document.getElementById("unlockBtn").onclick = () => {
+  if(passEl.value === PASSWORD){
+    lockEl.style.display = "none";
+    errorEl.textContent = "";
+  }else{
+    errorEl.textContent = "Password salah";
+  }
+};
+
+/* ===== BUILD GRID ===== */
+media.forEach((m,i)=>{
   const d=document.createElement("div");
   d.className="item";
   const el=document.createElement(m.type==="image"?"img":"video");
@@ -156,14 +170,11 @@ media.slice(0,16).forEach((m,i)=>{
   if(m.type==="video") el.muted=true;
   d.appendChild(el);
   d.onclick=()=>openViewer(i);
-  grid.appendChild(d);
+  gridEl.appendChild(d);
 });
 
-function unlock(){
-  if(pass.value===PASSWORD){
-    lock.style.display="none";
-  }else error.textContent="Password salah";
-}
+/* ===== VIEWER ===== */
+let index=0,startX=0,startY=0,zoomed=false,lastTap=0;
 
 function openViewer(i){
   index=i;
@@ -174,9 +185,9 @@ function openViewer(i){
 function render(){
   viewerContent.innerHTML="";
   const m=media[index];
-  indicator.textContent=${index+1}/${media.length}
+  indicator.textContent =`${index+1}/${media.length}`;
   zoomed=false;
-  viewerContent.style.transform="scale(1) translateY(0)";
+  viewerContent.style.transform="scale(1)";
   if(m.type==="image"){
     const img=document.createElement("img");
     img.src=m.src;
@@ -190,11 +201,11 @@ function render(){
   }
 }
 
-function next(){if(index<media.length-1){index++;render();}}
-function prev(){if(index>0){index--;render();}}
-function closeViewer(){viewer.style.display="none";}
+function next(){ if(index<media.length-1){ index++; render(); } }
+function prev(){ if(index>0){ index--; render(); } }
+function closeViewer(){ viewer.style.display="none"; }
 
-// TOUCH EVENTS
+/* ===== TOUCH ===== */
 viewer.addEventListener("touchstart",e=>{
   startX=e.touches[0].clientX;
   startY=e.touches[0].clientY;
@@ -203,32 +214,19 @@ viewer.addEventListener("touchstart",e=>{
 viewer.addEventListener("touchend",e=>{
   const dx=e.changedTouches[0].clientX-startX;
   const dy=e.changedTouches[0].clientY-startY;
-
-  if(Math.abs(dy)>80 && dy>0){ closeViewer(); return; }
-  if(Math.abs(dx)>60){
-    dx<0?next():prev();
-  }
+  if(Math.abs(dy)>80 && dy>0) closeViewer();
+  if(Math.abs(dx)>60) dx<0?next():prev();
 });
 
-// DOUBLE TAP ZOOM
-viewer.addEventListener("click",e=>{
+/* DOUBLE TAP */
+viewer.addEventListener("click",()=>{
   const now=Date.now();
   if(now-lastTap<300){
     zoomed=!zoomed;
-    viewerContent.style.transform=zoomed?
-      "scale(2)":"scale(1)";
+    viewerContent.style.transform=zoomed?"scale(2)":"scale(1)";
   }
   lastTap=now;
 });
-
-// KEYBOARD
-document.addEventListener("keydown",e=>{
-  if(viewer.style.display!=="flex")return;
-  if(e.key==="ArrowRight")next();
-  if(e.key==="ArrowLeft")prev();
-  if(e.key==="Escape")closeViewer();
-});
 </script>
-
 </body>
 </html>
