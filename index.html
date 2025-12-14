@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Photos</title>
 
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#000">
 
 <style>
@@ -36,19 +35,19 @@ body{margin:0;background:var(--bg);color:var(--text);}
 }
 .lock-box{
   width:300px;padding:28px;
-  border-radius:14px;
-  box-shadow:0 10px 40px rgba(0,0,0,.25);
+  border-radius:16px;
   text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,.25);
 }
 input,button{
   width:100%;padding:12px;margin-top:12px;
-  border-radius:10px;font-size:14px;
+  border-radius:10px;font-size:15px;
 }
 button{background:#007aff;color:#fff;border:none}
 
 /* HEADER */
 header{padding:16px;font-size:22px;font-weight:600;}
-header span{font-size:13px;color:var(--sub);}
+header span{display:block;font-size:13px;color:var(--sub);}
 
 /* GRID */
 .grid{
@@ -56,13 +55,8 @@ header span{font-size:13px;color:var(--sub);}
   grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
   gap:2px;
 }
-.item{
-  aspect-ratio:1/1;
-  overflow:hidden;
-}
-.item img,.item video{
-  width:100%;height:100%;object-fit:cover;
-}
+.item{aspect-ratio:1/1;overflow:hidden;}
+.item img,.item video{width:100%;height:100%;object-fit:cover;}
 
 /* VIEWER */
 .viewer{
@@ -108,7 +102,7 @@ header span{font-size:13px;color:var(--sub);}
 
 <header>
   Photos
-  <span>Swipe • Double tap • Swipe down</span>
+  <span>Swipe • Double tap • Swipe down • Tap background</span>
 </header>
 
 <section class="grid" id="grid"></section>
@@ -121,25 +115,21 @@ header span{font-size:13px;color:var(--sub);}
 
 <script>
 /* ===== CONFIG ===== */
-const PASSWORD = "hindunhazara25"; // ← GANTI PASSWORD DI SINI
+const PASSWORD = "hindunhazara"; // 🔑 GANTI PASSWORD DI SINI
 
 const media = [
   { type:"image", src:"media/1.jpg" },
-  { type:"image", src:"media/2.jpg" },
-  { type:"video", src:"media/3.mp4" },
   { type:"image", src:"media/4.jpg" },
   { type:"image", src:"media/5.jpg" },
-  { type:"image", src:"media/6.jpg" },
   { type:"video", src:"media/7.mp4" },
   { type:"image", src:"media/8.jpg" },
   { type:"image", src:"media/9.jpg" },
   { type:"image", src:"media/10.jpg" },
   { type:"video", src:"media/11.mp4" },
   { type:"image", src:"media/12.jpg" },
-  { type:"image", src:"media/13.jpg" },
   { type:"image", src:"media/14.jpg" },
   { type:"video", src:"media/15.mp4" },
-  { type:"image", src:"media/16.jpg" }
+  { type:"image", src:"media/16.jpg" },
 ];
 
 /* ===== ELEMENTS ===== */
@@ -152,10 +142,16 @@ const viewerContent = document.getElementById("viewerContent");
 const indicator = document.getElementById("indicator");
 
 /* ===== UNLOCK ===== */
+const music = document.getElementById("bgMusic");
+
 document.getElementById("unlockBtn").onclick = () => {
   if(passEl.value === PASSWORD){
     lockEl.style.display = "none";
     errorEl.textContent = "";
+
+    // PLAY MUSIC (iPhone SAFE)
+    music.volume = 0.35;
+    music.play().catch(()=>{});
   }else{
     errorEl.textContent = "Password salah";
   }
@@ -181,11 +177,13 @@ function openViewer(i){
   render();
   viewer.style.display="flex";
 }
-
+function closeViewer(){
+  viewer.style.display="none";
+}
 function render(){
   viewerContent.innerHTML="";
   const m=media[index];
-  indicator.textContent =`${index+1}/${media.length}`;
+  indicator.textContent = `${index+1} / ${media.length}`;
   zoomed=false;
   viewerContent.style.transform="scale(1)";
   if(m.type==="image"){
@@ -200,26 +198,18 @@ function render(){
     viewerContent.appendChild(v);
   }
 }
-
 function next(){ if(index<media.length-1){ index++; render(); } }
 function prev(){ if(index>0){ index--; render(); } }
-function closeViewer(){ viewer.style.display="none"; }
 
-/* ===== TOUCH ===== */
-viewer.addEventListener("touchstart",e=>{
-  startX=e.touches[0].clientX;
-  startY=e.touches[0].clientY;
+/* ===== TAP BACKGROUND TO CLOSE ===== */
+viewer.addEventListener("click",e=>{
+  if(e.target === viewer){
+    closeViewer();
+  }
 });
 
-viewer.addEventListener("touchend",e=>{
-  const dx=e.changedTouches[0].clientX-startX;
-  const dy=e.changedTouches[0].clientY-startY;
-  if(Math.abs(dy)>80 && dy>0) closeViewer();
-  if(Math.abs(dx)>60) dx<0?next():prev();
-});
-
-/* DOUBLE TAP */
-viewer.addEventListener("click",()=>{
+/* ===== DOUBLE TAP ZOOM (CONTENT ONLY) ===== */
+viewerContent.addEventListener("click",()=>{
   const now=Date.now();
   if(now-lastTap<300){
     zoomed=!zoomed;
@@ -227,6 +217,22 @@ viewer.addEventListener("click",()=>{
   }
   lastTap=now;
 });
+
+/* ===== TOUCH ===== */
+viewer.addEventListener("touchstart",e=>{
+  startX=e.touches[0].clientX;
+  startY=e.touches[0].clientY;
+});
+viewer.addEventListener("touchend",e=>{
+  const dx=e.changedTouches[0].clientX-startX;
+  const dy=e.changedTouches[0].clientY-startY;
+  if(Math.abs(dy)>80 && dy>0) closeViewer();
+  if(Math.abs(dx)>60) dx<0?next():prev();
+});
 </script>
+  <audio id="bgMusic" loop>
+  <source src="music/superpower.mp3" type="audio/mpeg">
+</audio>
+
 </body>
 </html>
